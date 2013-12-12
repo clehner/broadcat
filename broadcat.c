@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
     if ((rv = getaddrinfo(NULL, port, &hints, &ai)) != 0) {
-        fprintf(stderr, "selectserver: %s\n", gai_strerror(rv));
+        fprintf(stderr, "%s: %s\n", argv[0], gai_strerror(rv));
         exit(1);
     }
     
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 
     // if we got here, it means we didn't get bound
     if (p == NULL) {
-        fprintf(stderr, "selectserver: failed to bind\n");
+        fprintf(stderr, "%s: failed to bind\n", argv[0]);
         exit(2);
     }
 
@@ -168,12 +168,12 @@ int main(int argc, char *argv[])
                             perror("send");
                         }
                         /*
-                        printf("selectserver: new connection from %s on "
+                        printf("%s: new connection from %s on "
                             "socket %d\n",
                             inet_ntop(remoteaddr.ss_family,
                                 get_in_addr((struct sockaddr*)&remoteaddr),
                                 remoteIP, INET6_ADDRSTRLEN),
-                            newfd);
+                            newfd, argv[0]);
                             */
                     }
                 } else {
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
                         // got error or connection closed by client
                         if (nbytes == 0) {
                             // connection closed
-                            //printf("selectserver: socket %d hung up\n", i);
+                            //printf("%s: socket %d hung up\n", argv[0], i);
                         } else {
                             perror("recv");
                         }
