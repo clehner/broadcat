@@ -37,12 +37,12 @@ int main(int argc, char *argv[])
     struct sockaddr_storage remoteaddr; // client address
     socklen_t addrlen;
 
-    char buf[256];    // buffer for client data
+    char buf[1];    // buffer for client data, which we don't actually read
     int nbytes;
     char cur_data[256];// buffer for server data
     int cur_data_len;
 
-    char remoteIP[INET6_ADDRSTRLEN];
+    //char remoteIP[INET6_ADDRSTRLEN];
 
     int yes=1;        // for setsockopt() SO_REUSEADDR, below
     int i, j, rv;
@@ -190,13 +190,6 @@ int main(int argc, char *argv[])
                         FD_CLR(i, &master); // remove from master set
                     } else {
                         // Discard received data
-                        /*
-                        // Print client's data
-                        buf[nbytes] = '\0';
-                        if (fputs(buf, stdout) == -1) {
-                            perror("send");
-                        }
-                        */
                     }
                 } // END handle data from client
             } // END got new incoming connection
