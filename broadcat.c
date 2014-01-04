@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <signal.h>
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -32,28 +33,69 @@ int main(int argc, char *argv[])
     int fdmax;        // maximum file descriptor number
     char *port;       // port we're listening on
 
+    int num_clients;  // number of clients connected
+    char **command;   // command and args, passed as argument
+    int child_pid;    // pid of child process running command
+    int c_pipe[2];    // pipe for communicating with child
+
     int listener;     // listening socket descriptor
     int newfd;        // newly accept()ed socket descriptor
     struct sockaddr_storage remoteaddr; // client address
     socklen_t addrlen;
 
     char buf[1];    // buffer for client data, which we don't actually read
-    int nbytes;
+    //int nbytes;
     char cur_data[256];// buffer for server data
     int cur_data_len;
 
-    //char remoteIP[INET6_ADDRSTRLEN];
+    char remoteIP[INET6_ADDRSTRLEN];
 
     int yes=1;        // for setsockopt() SO_REUSEADDR, below
     int i, j, rv;
 
     struct addrinfo hints, *ai, *p;
+    char* com[] = {"./toucher", "a", NULL};
 
     if (argc <= 1) {
-        fprintf(stderr, "%s: Missing port\n", argv[0]);
+        fprintf(stderr, "Usage: %s port [command...]\n", argv[0]);
         return 1;
     }
     port = argv[1];
+
+    if (argc > 2) {
+        // got a child process to create
+        command = &argv[2];
+
+        // create communication pipe
+		 if(pipe(c_pipe)){
+			fprintf(stderr,"Pipe error!\n");
+			exit(1);
+		}
+
+        // Start the child process
+        if ((child_pid = fork()) == -1) {
+            perror("fork");
+            exit(1);        
+        }
+        if (!child_pid) {
+			// child
+
+			// Replace stdout with write end of pipe
+			dup2(c_pipe[1],1);
+			// Close read end of pipe
+			close(c_pipe[0]);
+
+            // run the command
+            return execvp(command[0], command);
+        }
+
+		// Replace stdin with read end of pipe
+		dup2(c_pipe[0],0);
+		// Close write end of pipe
+		close(c_pipe[1]);
+    } else {
+		command = NULL;
+	}
 
     FD_ZERO(&master);    // clear the master and temp sets
     FD_ZERO(&read_fds);
@@ -111,6 +153,14 @@ int main(int argc, char *argv[])
     // keep track of the biggest file descriptor
     fdmax = listener; // so far, it's this one
 
+    // keep track of how many clients are connected
+    num_clients = 0;
+
+    // stop the process until we have a client connected
+    if (command) {
+        kill(child_pid, SIGSTOP);
+    }
+
     // main loop
     for(;;) {
         read_fds = master; // copy it
@@ -167,6 +217,15 @@ int main(int argc, char *argv[])
                         if (send(newfd, cur_data, cur_data_len, 0) == -1) {
                             perror("send");
                         }
+                        //printf("client connected\n");
+                        if (command && num_clients == 0) {
+                            kill(child_pid, SIGCONT);
+                        }
+						num_clients++;
+                        printf("client %d connected: %s\n", num_clients,
+                            inet_ntop(remoteaddr.ss_family,
+                                get_in_addr((struct sockaddr*)&remoteaddr),
+                                remoteIP, INET6_ADDRSTRLEN));
                         /*
                         printf("%s: new connection from %s on "
                             "socket %d\n",
@@ -178,18 +237,18 @@ int main(int argc, char *argv[])
                     }
                 } else {
                     // handle data from a client
-                    if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
+                    if (recv(i, buf, sizeof buf, 0) <= 0) {
+                        //printf("client disconnected\n");
                         // got error or connection closed by client
-                        if (nbytes == 0) {
-                            // connection closed
-                            //printf("%s: socket %d hung up\n", argv[0], i);
-                        } else {
-                            perror("recv");
-                        }
                         close(i); // bye!
                         FD_CLR(i, &master); // remove from master set
-                    } else {
-                        // Discard received data
+
+						num_clients--;
+                        if (command && num_clients == 0) {
+                            // stop the process
+                            kill(child_pid, SIGSTOP);
+                        }
+                        printf("client %d disconnected\n", num_clients+1);
                     }
                 } // END handle data from client
             } // END got new incoming connection
