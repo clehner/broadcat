@@ -44,7 +44,6 @@ int main(int argc, char *argv[])
     socklen_t addrlen;
 
     char buf[1];    // buffer for client data, which we don't actually read
-    //int nbytes;
     char cur_data[256];// buffer for server data
     int cur_data_len;
 
@@ -54,7 +53,6 @@ int main(int argc, char *argv[])
     int i, j, rv;
 
     struct addrinfo hints, *ai, *p;
-    char* com[] = {"./toucher", "a", NULL};
 
     if (argc <= 1) {
         fprintf(stderr, "Usage: %s port [command...]\n", argv[0]);
