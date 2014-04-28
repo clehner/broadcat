@@ -65,10 +65,10 @@ int main(int argc, char *argv[])
         command = &argv[2];
 
         // create communication pipe
-		 if(pipe(c_pipe)){
-			fprintf(stderr,"Pipe error!\n");
-			exit(1);
-		}
+         if(pipe(c_pipe)){
+            fprintf(stderr,"Pipe error!\n");
+            exit(1);
+        }
 
         // Start the child process
         if ((child_pid = fork()) == -1) {
@@ -76,24 +76,24 @@ int main(int argc, char *argv[])
             exit(1);        
         }
         if (!child_pid) {
-			// child
+            // child
 
-			// Replace stdout with write end of pipe
-			dup2(c_pipe[1],1);
-			// Close read end of pipe
-			close(c_pipe[0]);
+            // Replace stdout with write end of pipe
+            dup2(c_pipe[1],1);
+            // Close read end of pipe
+            close(c_pipe[0]);
 
             // run the command
             return execvp(command[0], command);
         }
 
-		// Replace stdin with read end of pipe
-		dup2(c_pipe[0],0);
-		// Close write end of pipe
-		close(c_pipe[1]);
+        // Replace stdin with read end of pipe
+        dup2(c_pipe[0],0);
+        // Close write end of pipe
+        close(c_pipe[1]);
     } else {
-		command = NULL;
-	}
+        command = NULL;
+    }
 
     FD_ZERO(&master);    // clear the master and temp sets
     FD_ZERO(&read_fds);
@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
                         if (command && num_clients == 0) {
                             kill(child_pid, SIGCONT);
                         }
-						num_clients++;
+                        num_clients++;
                         printf("client %d connected: %s\n", num_clients,
                             inet_ntop(remoteaddr.ss_family,
                                 get_in_addr((struct sockaddr*)&remoteaddr),
@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
                         close(i); // bye!
                         FD_CLR(i, &master); // remove from master set
 
-						num_clients--;
+                        num_clients--;
                         if (command && num_clients == 0) {
                             // stop the process
                             kill(child_pid, SIGSTOP);
