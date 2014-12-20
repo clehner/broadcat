@@ -26,7 +26,7 @@ resume.
 
 A clock server:
 
-    ./broadcat 9999 bash -c 'while true; do date; sleep 1; done'
+    ./broadcat 9999 bash -c 'while date; do sleep 1; done'
 
 To connect to the server, use netcat or telnet:
 
